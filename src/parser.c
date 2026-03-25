@@ -26,7 +26,40 @@ char *msh_read_line(void) {
 
   return line;
 }
+int msh_has_pipe(char *line) {
+  return strchr(line, '|') != NULL;
+}
 
+char **msh_split_pipe(char *line) {
+  int bufsize = MSH_TOK_BUFSIZE;
+  int position = 0;
+  char **commands = malloc(bufsize * sizeof(char *));
+  char *token;
+
+  if (!commands) {
+    fprintf(stderr, "msh: allocation error\n");
+    exit(EXIT_FAILURE);
+  }
+
+  token = strtok(line, "|");
+  while (token != NULL) {
+    commands[position++] = token;
+
+    if (position >= bufsize) {
+      bufsize += MSH_TOK_BUFSIZE;
+      commands = realloc(commands, bufsize * sizeof(char *));
+      if (!commands) {
+        fprintf(stderr, "msh: realloc error\n");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    token = strtok(NULL, "|");
+  }
+
+  commands[position] = NULL;
+  return commands;
+}
 char **msh_split_line(char *line) {
   int bufsize = MSH_TOK_BUFSIZE;
   int position = 0;
@@ -54,4 +87,20 @@ char **msh_split_line(char *line) {
   }
   tokens[position] = NULL;
   return tokens;
+}
+int msh_has_redirect(char *line) {
+  return strchr(line, '>') != NULL || strchr(line, '<') != NULL;
+}
+char **msh_parse_redirect(char *line, char **filename, int *is_output) {
+  char *token;
+  if (strchr(line, '>')) {
+    *is_output = 1;
+    token = strtok(line, ">");
+  } else {
+    *is_output = 0;
+    token = strtok(line, "<");
+  }
+  char *file = strtok(NULL, " \t\r\n");
+  *filename = file;
+  return msh_split_line(token);
 }

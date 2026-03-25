@@ -16,11 +16,19 @@ void msh_loop(void) {
     }
 
     line = msh_read_line();
-    args = msh_split_line(line);
-    status = msh_execute(args);
-
-    free(line);
-    free(args);
+if (msh_has_pipe(line)) {
+  char **commands = msh_split_pipe(line);
+  status = msh_execute_pipe(commands);
+  free(commands);
+}
+else if (msh_has_redirect(line)) {
+  status = msh_execute_redirect(line);
+}
+else {
+  args = msh_split_line(line);
+  status = msh_execute(args);
+  free(args);
+}
   } while (status);
 }
 
